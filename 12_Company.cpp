@@ -1,262 +1,283 @@
 #include<iostream>
-#include<conio.h>
-#include<fstream>
-#include<stdlib.h>
 #include<iomanip>
-#include<string.h>
-#include<stdio.h>
+#include<fstream>
+#include<cstring>
 using namespace std;
-const char* fileName="Employee.txt";
- 
-class Employee
+class EMP_CLASS
 {
-private:
-int EmpID;
-char EmpName[50],Post[50],Department[10];
-float Salary;
+typedef struct EMPLOYEE
+{
+char name[10];
+int emp_id;
+int salary;
+}Rec;
+typedef struct INDEX
+{
+int emp_id;
+int position;
+}Ind_Rec;
+Rec Records;
+Ind_Rec Ind_Records;
 public:
-void ReadData();
-int GetID();
-void DisplayRecord();
-char* GetDepartment();
+EMP_CLASS();
+void Create();
+void Display();
+void Update();
+void Delete();
+void Append();
+void Search();
 };
- 
-void Employee::ReadData()
+EMP_CLASS::EMP_CLASS()//constructor
 {
-cout<<endl<<"Employee ID:";
-cin>>EmpID;
-cout<<"Employee Name:";
-cin>>EmpName;
-cout<<"Employee's Post:";
-cin>>Post;
-cout<<"Employee's Department:";
-cin>>Department;
-cout<<"Salary:";
-cin>>Salary;
+strcpy(Records.name,"");
 }
- 
-void Employee::DisplayRecord()
+void EMP_CLASS::Create()
 {
-cout<<endl<<"_______________________________";
-cout<<endl<<setw(5)<<EmpID<<setw(15)<<EmpName<<setw(15)<<Post<<setw(15)<<Department<<setw(8)<<Salary;
-}
- 
-int Employee::GetID()
-{
-return EmpID;
-}
- 
-char* Employee::GetDepartment()
-{
-return Department;
-}
- 
-int main()
-{
-Employee emp,e;
-char option,ch,Dept[50];
-int ID,isFound;
-fstream file;
-file.open(fileName,ios::ate|ios::in|ios::out|ios::binary);
+int i,j;
+char ch='y';
+fstream seqfile;
+fstream indexfile;
+i=0;
+indexfile.open("IND.DAT",ios::out);
+seqfile.open("EMP.DAT",ios::out);
 do
 {
-cout<<"*******Menu********";
-cout<<endl<<"Enter your option";
-cout<<endl<<"1 => Add a new record";
-cout<<endl<<"2 => Search record from employee id";
-cout<<endl<<"3 => List Employee of particular department";
-cout<<endl<<"4 => Display all employee";
-cout<<endl<<"5 => Update record of an employee";
-cout<<endl<<"6 => Delete record of particular employee";
-cout<<endl<<"7 => Exit from the program"<<endl;
-cout<<"********************"<<endl;
-cin>>option;
-switch(option)
+cout<<"\n Enter Name: ";
+cin>>Records.name;
+cout<<"\n Enter Emp_ID: ";
+cin>>Records.emp_id;
+cout<<"\n Enter Salary: ";
+cin>>Records.salary;
+seqfile.write((char*)&Records,sizeof(Records));
+Ind_Records.emp_id=Records.emp_id;
+Ind_Records.position=i;
+indexfile.write((char*)&Ind_Records,sizeof(Ind_Records));
+i++;
+cout<<"\nDo you want to add more records?";
+cin>>ch;
+}while(ch=='y');
+seqfile.close();
+indexfile.close();
+}
+void EMP_CLASS::Display()
 {
-case 1:
-emp.ReadData();
-file.seekg(0,ios::beg);
-isFound=0;
-file.read((char*)&e,sizeof(e));
-while(!file.eof())
+fstream seqfile;
+fstream indexfile;
+int n,i,j;
+seqfile.open("EMP.DAT",ios::in|ios::out|ios::binary);
+indexfile.open("IND.DAT",ios::in|ios::out|ios::binary);
+indexfile.seekg(0,ios::beg);
+seqfile.seekg(0,ios::beg);
+cout<<"\n The Contents of file are ..."<<endl;
+i=0;
+while(indexfile.read((char *)&Ind_Records,sizeof(Ind_Records)))
 {
-if(e.GetID()==emp.GetID())
+i=Ind_Records.position*sizeof(Rec);//getting pos from index file
+seqfile.seekg(i,ios::beg);//seeking record of that pos from seq.file
+seqfile.read((char *)&Records,sizeof(Records));//reading record
+if(Records.emp_id!=-1)//if rec. is not deleted logically
+{ //then display it
+cout<<"\nName: "<<Records.name<<flush;
+cout<<"\nEmp_ID: "<<Records.emp_id;
+cout<<"\nSalary: "<<Records.salary;
+cout<<"\n";
+}
+}
+seqfile.close();
+indexfile.close();
+}
+void EMP_CLASS::Update()
 {
-cout<<"This ID already exist...Try for another ID";
-isFound=1;
+int pos,id;
+char New_name[10];
+int New_emp_id;
+int New_salary;
+cout<<"\n For updation,";
+cout<<"\n Enter the Emp_ID for for searching ";
+cin>>id;
+fstream seqfile;
+fstream indexfile;
+seqfile.open("EMP.DAT",ios::in|ios::out|ios::binary);
+indexfile.open("IND.DAT",ios::in|ios::out|ios::binary);
+indexfile.seekg(0,ios::beg);
+pos=-1;
+//reading index file for getting the index
+while(indexfile.read((char *)&Ind_Records,sizeof(Ind_Records)))
+{
+if(id==Ind_Records.emp_id)//the desired record is found
+{
+pos=Ind_Records.position;//getting the position
 break;
 }
-file.read((char*)&e,sizeof(e));
 }
-if(isFound==1)
-break;
-file.clear();
-file.seekp(0,ios::end);
-file.write((char*)&emp, sizeof(emp));
-cout<<endl<<"New record has been added successfully...";
-break;
- 
-case 2:
-isFound=0;
-cout<<endl<<"Enter ID of an employee to be searched:";
-cin>>ID;
-file.seekg(0,ios::beg);
-file.read((char*)&e,sizeof(e));
-while(!file.eof())
+if(pos==-1)
 {
-if(e.GetID()==ID)
-{
-cout<<endl<<"The record found...."<<endl;
-cout<<endl<<setw(5)<<"ID"<<setw(15)<<"Name"<<setw(15)<<"Post"<<setw(15)<<"Department"<<setw(8)<<"Salary";
-e.DisplayRecord();
-isFound=1;
-break;
-}
-file.read((char*)&e,sizeof(e));
-}
-file.clear();
-if(isFound==0)
-cout<<endl<<"Data not found for employee ID#"<<ID;
-break;
-case 3:
-isFound=0;
-cout<<"Enter department name to list employee within it:";
-cin>>Dept;
-file.seekg(0,ios::beg);
-file.read((char*)&e,sizeof(e));
-while(!file.eof())
-{
-if(strcmp(e.GetDepartment(),Dept)==0)
-{
-cout<<endl<<"The record found for this department"<<endl;
- 
-cout<<endl<<setw(5)<<"ID"<<setw(15)<<"Name"<<setw(15)<<"Post"<<setw(15)<<"Department"<<setw(8)<<"Salary";
-e.DisplayRecord();
-isFound=1;
-break;
-}
-file.read((char*)&e,sizeof(e));
-}
-file.clear();
-if(isFound==0)
-cout<<endl<<"Data not found for department"<<Dept;
-break;
- 
-case 4:
-cout<<endl<<"Record for employee";
-file.clear();
-file.seekg(0,ios::beg);
-file.read((char*)&e,sizeof(e));
-while(!file.eof())
-{
-counter++;
-if(counter==1)
-{
-cout<<endl<<setw(5)<<"ID"<<setw(15)<<"Name"<<setw(15)<<"Post"<<setw(15)<<"Department"<<setw(8)<<"Salary";
-}
-e.DisplayRecord();
-file.read((char*)&e,sizeof(e));
-}
-cout<<endl<<counter<<"records found......";
-file.clear();
-break;
- 
-case 5:
-int recordNo=0;
-cout<<endl<<"File is being modified....";
-cout<<endl<<"Enter employee ID to be updated:";
-cin>>ID;
-isFound=0;
-file.seekg(0,ios::beg);
-file.read((char*)&e,sizeof(e));
-while(!file.eof())
-{
-recordNo++;
-if(e.GetID()==ID)
-{
-cout<<"The old record of employee having ID"<<ID<< "is:";
-e.DisplayRecord();
-isFound=1;
-break;
-}
-file.read((char*)&e,sizeof(e));
-}
- 
-if(isFound==0)
-{
-cout<<endl<<"Data not found for employee ID#"<<ID;
-break;
-}
-file.clear();
-int location=(recordNo-1)*sizeof(e);
-file.seekp(location,ios::beg);
-cout<<endl<<"Enter new record for employee having ID"<<ID;
-e.ReadData();
-file.write((char*)&e, sizeof(e));
-break;
- 
-case 6:
-recordNo=0;
-cout<<endl<<"Enter employment ID to be deleted:";
-cin>>ID;
-isFound=0;
-file.seekg(0,ios::beg);
-file.read((char*)&e,sizeof(e));
-while(!file.eof())
-{
-recordNo++;
-if(e.GetID()==ID)
-{
-cout<<" The old record of employee having ID "<<ID<< " is: ";
-e.DisplayRecord();
-isFound=1;
-break;
-}
-file.read((char*)&e,sizeof(e));
-}
-char tempFile[]="temp.txt";
-fstream temp(tempFile,ios::out|ios::binary);
-if(isFound==0)
-{
-cout<<endl<<"Data not found for employee ID#"<<ID;
-break;
+cout<<"\n The record is not present in the file";
+return;
 }
 else
 {
-file.clear();
-file.seekg(0,ios::beg);
-file.read((char*)&e,sizeof(e));
-while(!file.eof())
+cout<<"\n Enter the values for updation...";
+cout<<"\n Name: ";cin>>New_name;
+cout<<"\n Salary: ";cin>>New_salary;
+//calculating the position of record in seq. file using the pos of ind. file
+int offset=pos*sizeof(Rec);
+seqfile.seekp(offset);//seeking the desired record for modification
+strcpy(Records.name,New_name);//can be updated
+Records.emp_id=id;//It's unique id,so don't change
+Records.salary=New_salary;//can be updated
+seqfile.write((char*)&Records,sizeof(Records))<<flush;
+cout<<"\n The record is updated!!!";
+}
+seqfile.close();
+indexfile.close();
+}
+void EMP_CLASS::Delete()
 {
-if(e.GetID()!=ID)
-temp.write((char*)&e,sizeof(e));
-file.read((char*)&e,sizeof(e));
-}
-file.close();
-temp.close();
-temp.open(tempFile,ios::in|ios::binary);
-file.open(fileName,ios::out|ios::binary);
-temp.read((char*)&e,sizeof(e));
-while(!temp.eof())
+int id,pos;
+cout<<"\n For deletion,";
+cout<<"\n Enter the Emp_ID for for searching ";
+cin>>id;
+fstream seqfile;
+fstream indexfile;
+seqfile.open("EMP.DAT",ios::in|ios::out|ios::binary);
+indexfile.open("IND.DAT",ios::in|ios::out|ios::binary);
+seqfile.seekg(0,ios::beg);
+indexfile.seekg(0,ios::beg);
+pos=-1;
+//reading index file for getting the index
+while(indexfile.read((char *)&Ind_Records,sizeof(Ind_Records)))
 {
-file.write((char*)&e,sizeof(e));
-temp.read((char*)&e,sizeof(e));
-}
-}
-temp.close();
-file.close();
-remove(tempFile);
-file.open(fileName,ios::ate|ios::in|ios::out|ios::binary);
+if(id==Ind_Records.emp_id) //desired record is found
+{
+pos=Ind_Records.position;
+Ind_Records.emp_id=-1;
 break;
- 
-case 7:
-exit(0);
-break;
- 
-default:
-cout<<"Invalid Options";
 }
-cout<<"\nDo you want to continue.....?y/n";
-cin>>ch;
-}while(ch!=7);
+}
+if(pos==-1)
+{
+cout<<"\n The record is not present in the file";
+return;
+}
+//calculating the position of record in seq. file using the pos of ind. file
+int offset=pos*sizeof(Rec);
+seqfile.seekp(offset);//seeking the desired record for deletion
+strcpy(Records.name,"");
+Records.emp_id=-1; //logical deletion
+Records.salary=-1; //logical deletion
+seqfile.write((char*)&Records,sizeof(Records))<<flush;//writing deleted status
+//From index file also the desired record gets deleted as follows
+offset=pos*sizeof(Ind_Rec);//getting position in index file
+indexfile.seekp(offset); //seeking that record
+Ind_Records.emp_id=-1; //logical deletion of emp_id
+Ind_Records.position=pos;//position remain unchanged
+indexfile.write((char*)&Ind_Records,sizeof(Ind_Records))<<flush;
+seqfile.seekg(0);
+indexfile.close();
+seqfile.close();
+cout<<"\n The record is Deleted!!!";
+}
+void EMP_CLASS::Append()
+{
+fstream seqfile;
+fstream indexfile;
+int pos;
+indexfile.open("IND.DAT",ios::in|ios::binary);
+indexfile.seekg(0,ios::end);
+pos=indexfile.tellg()/sizeof(Ind_Records);
+indexfile.close();
+indexfile.open("IND.DAT",ios::app|ios::binary);
+seqfile.open("EMP.DAT",ios::app|ios::binary);
+cout<<"\n Enter the record for appending";
+cout<<"\nName: ";cin>>Records.name;
+cout<<"\nEmp_ID: ";cin>>Records.emp_id;
+cout<<"\nSalary: ";cin>>Records.salary;
+seqfile.write((char*)&Records,sizeof(Records));//inserting rec at end in seq. file
+Ind_Records.emp_id=Records.emp_id; //inserting rec at end in ind. file
+Ind_Records.position=pos; //at calculated pos
+indexfile.write((char*)&Ind_Records,sizeof(Ind_Records))<<flush;
+seqfile.close();
+indexfile.close();
+cout<<"\n The record is Appended!!!";
+}
+void EMP_CLASS::Search()
+{
+fstream seqfile;
+fstream indexfile;
+int id,pos,offset;
+cout<<"\n Enter the Emp_ID for searching the record ";
+cin>>id;
+indexfile.open("IND.DAT",ios::in|ios::binary);
+pos=-1;
+//reading index file to obtain the index of desired record
+while(indexfile.read((char *)&Ind_Records,sizeof(Ind_Records)))
+{
+if(id==Ind_Records.emp_id)//desired record found
+{
+pos=Ind_Records.position;//seeking the position
+break;
+}
+}
+if(pos==-1)
+{
+cout<<"\n Record is not present in the file";
+return;
+}
+//calculate offset using position obtained from ind. file
+offset=pos*sizeof(Records);
+seqfile.open("EMP.DAT",ios::in|ios::binary);
+//seeking the record from seq. file using calculated offset
+seqfile.seekg(offset,ios::beg);//seeking for reading purpose
+seqfile.read((char *)&Records,sizeof(Records));
+if(Records.emp_id==-1)
+{
+cout<<"\n Record is not present in the file";
+return;
+}
+else //emp_id=desired record’s id
+{
+cout<<"\n The Record is present in the file and it is...";
+cout<<"\n Name: "<<Records.name;
+cout<<"\n Emp_ID: "<<Records.emp_id;
+cout<<"\n Salary: "<<Records.salary;
+}
+seqfile.close();
+indexfile.close();
+}
+int main()
+{
+EMP_CLASS List;
+char ans;
+int choice;
+do
+{
+cout<<"\n Main Menu "<<endl;
+cout<<"\n 1.Create";
+cout<<"\n 2.Display";
+cout<<"\n 3.Update";
+cout<<"\n 4.Delete";
+cout<<"\n 5.Append";
+cout<<"\n 6.Search";
+cout<<"\n 7.Exit";
+cout<<"\n Enter your choice: ";
+cin>>choice;
+switch(choice)
+{
+case 1:List.Create();
+break;
+case 2:List.Display();
+break;
+case 3:List.Update();
+break;
+case 4:List.Delete();
+break;
+case 5:List.Append();
+break;
+case 6:List.Search();
+break;
+}
+cout<<"\n\t Do you want to go back to Main Menu?";
+cin>>ans;
+}while(ans=='y');
 }
